@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat con DeepSeek</title>
+</head>
+<body>
+    <h1>Chat con el modelo DeepSeek</h1>
+    <input type="text" id="pregunta" placeholder="Escribe tu pregunta">
+    <button onclick="consultar()">Enviar</button>
+    <pre id="respuesta"></pre>
+
+    <script>
+        async function consultar() {
+            const pregunta = document.getElementById("pregunta").value;
+            const respuestaDiv = document.getElementById("respuesta");
+            respuestaDiv.textContent = "Consultando...";
+
+            const res = await fetch("http://localhost:8000/consultar", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ pregunta })
+            });
+
+            const data = await res.json();
+            respuestaDiv.textContent = data.respuesta;
+        }
+    </script>
+</body>
+</html>
