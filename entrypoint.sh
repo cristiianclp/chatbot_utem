@@ -7,7 +7,7 @@ ollama serve &
 sleep 10
 
 # Descarga el modelo (si no está ya descargado)
-ollama pull deepseek-r1:7b
+ollama pull granite3.2:2b
 
 # Espera unos segundos más para asegurar estabilidad
 sleep 5

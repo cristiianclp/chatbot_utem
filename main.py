@@ -1,10 +1,11 @@
-from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from langchain_ollama import OllamaLLM
 from langchain_core.prompts import ChatPromptTemplate
+import uvicorn
 
 app = FastAPI()
 
@@ -15,6 +16,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Montar carpeta static
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Modelo
 model = OllamaLLM(model="deepseek-r1:7b")
@@ -31,12 +35,23 @@ class Consulta(BaseModel):
     pregunta: str
 
 @app.post("/consultar")
-def consultar(data: Consulta):
-    respuesta = chain.invoke({"question": data.pregunta})
-    texto = respuesta.strip().split("<|im_end|>")[0].split("<|assistant|>")[-1].strip()
-    return {"respuesta": texto}
+async def consultar(data: Consulta):
+    try:
+        respuesta = chain.invoke({"question": data.pregunta})
+        texto = respuesta.strip().split("<|im_end|>")[0].split("<|assistant|>")[-1].strip()
+        print(f"Pregunta: {data.pregunta}\nRespuesta: {texto}")
+        return {"respuesta": texto}
+    except Exception as e:
+        print(f"Error procesando la consulta: {e}")
+        raise HTTPException(status_code=500, detail="Error procesando la consulta")
 
-# Servir HTML estático
-@app.get("/", response_class=HTMLResponse)
-def index():
+@app.get("/")
+async def root():
     return FileResponse("index.html")
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8000)
