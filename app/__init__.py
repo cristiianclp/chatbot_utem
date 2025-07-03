@@ -1,33 +1,15 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from flask import Flask, send_from_directory
+from app.routes.chat import chat_bp
+import os
 
-from .routes import routers
+def create_app():
+    app = Flask(__name__, static_folder='../static', static_url_path='/static')
+    app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
 
-app = FastAPI()
+    app.register_blueprint(chat_bp)
 
-# CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+    @app.route('/')
+    def index():
+        return send_from_directory(app.static_folder, 'index.html')
 
-# Static
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# Registrar routers (equivalente a registrar Blueprints)
-for router in routers:
-    app.include_router(router)
-
-# Healthcheck
-@app.get("/health")
-async def health_check():
-    return {"status": "ok"}
-
-# Index
-@app.get("/")
-async def root():
-    return FileResponse("static/index.html")
+    return app
