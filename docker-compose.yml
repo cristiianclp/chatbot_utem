@@ -1,15 +1,16 @@
 version: '3.8'
 
 services:
-  fastapi-app:
+  flask-app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: deepseek-fastapi
+    container_name: chatbot-flask
     ports:
       - "8000:8000"
     environment:
       OLLAMA_HOST: ${OLLAMA_HOST}
+      FLASK_SECRET_KEY: ${FLASK_SECRET_KEY}
     depends_on:
       - ollama
     restart: unless-stopped

@@ -1,66 +1,44 @@
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from flask import Blueprint, request, jsonify, session
 import ollama
-import json
-from app.utils.obtener_dolar import obtener_dolar
 
-router = APIRouter()
+chat_bp = Blueprint('chat_bp', __name__)
 
-# Tool para consultar dólar
-def consultar_dolar(fecha: str) -> str:
-    """
-    Consulta el valor del dólar de una fecha en formato dd-mm-yyyy.
-    """
-    return obtener_dolar(fecha)
+MODEL_NAME = "granite3.2:2b"
 
-class Consulta(BaseModel):
-    pregunta: str
+@chat_bp.route('/consultar', methods=['POST'])
+def consultar():
+    data = request.get_json()
+    pregunta = data.get('pregunta', '')
 
-@router.post("/consultar")
-async def consultar(data: Consulta):
+    if 'chat_history' not in session:
+        session['chat_history'] = [
+            {
+                "role": "system",
+                "content":
+                    "Eres un chatbot conversacional institucional de la Universidad Tecnológica Metropolitana (UTEM), especializado en brindar orientación y asistencia a estudiantes sobre el proceso de inscripción de asignaturas y matrícula, operando como asistente de SISEI de la UTEM. "
+                    "Responde de forma clara, breve y en español, adaptando el nivel de detalle según la consulta, utilizando un lenguaje cordial y educativo. "
+                    "Puedes guiar paso a paso a los estudiantes sobre temas como fechas de inscripción y matrícula, reglas de inscripción, reglas de los tres niveles, tramos de inscripción, recuperación de clave, requisitos y documentos necesarios, problemas comunes en el sistema de inscripción y orientación general sobre procesos administrativos. "
+                    "Si una consulta no está relacionada con inscripción o matrícula, indícalo amablemente y sugiere al estudiante comunicarse con la unidad correspondiente. "
+                    "No realices acciones administrativas ni confirmes estados académicos específicos, tu rol es informativo y orientativo. "
+                    "Cuando respondas, utiliza ejemplos si es necesario para facilitar la comprensión del estudiante. "
+                    "Si el estudiante saluda o realiza consultas generales, responde de forma cálida, fomentando la confianza en el uso del sistema."
+            }
+        ]
+
+    chat_history = session['chat_history']
+    chat_history.append({"role": "user", "content": pregunta})
+
     try:
-        system_prompt = (
-            "Eres un asistente educativo en español. "
-            "Si el usuario pregunta por el valor del dólar en una fecha específica, "
-            "usa SIEMPRE la herramienta 'consultar_dolar' con el parámetro 'fecha'. "
-            "No expliques ni estimes valores, usa la herramienta si corresponde."
-        )
-
         response = ollama.chat(
-            model="granite3.2:2b",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": data.pregunta}
-            ],
-            tools=[{
-                "name": "consultar_dolar",
-                "description": "Consulta el valor del dólar para una fecha en formato dd-mm-yyyy.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "fecha": {
-                            "type": "string",
-                            "description": "Fecha en formato dd-mm-yyyy"
-                        }
-                    },
-                    "required": ["fecha"]
-                }
-            }]
+            model=MODEL_NAME,
+            messages=chat_history
         )
+        respuesta_modelo = response["message"]["content"]
 
-        # Verifica si se invocó el tool
-        if "tool_calls" in response["message"]:
-            tool_calls = response["message"]["tool_calls"]
-            for call in tool_calls:
-                if call["name"] == "consultar_dolar":
-                    argumentos = json.loads(call["arguments"])
-                    fecha = argumentos.get("fecha")
-                    if fecha:
-                        resultado = consultar_dolar(fecha)
-                        return {"respuesta": resultado}
+        chat_history.append({"role": "assistant", "content": respuesta_modelo})
+        session['chat_history'] = chat_history
 
-        # Respuesta normal si no hay tool calling
-        return {"respuesta": response["message"]["content"]}
+        return jsonify({"respuesta": respuesta_modelo})
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error procesando la consulta: {str(e)}")
+        return jsonify({"error": f"Error procesando la consulta: {str(e)}"}), 500

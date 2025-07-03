@@ -2,14 +2,35 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat UTEM</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <h1>Chat UTEM</h1>
-    <input type="text" id="pregunta" placeholder="Escribe tu pregunta">
-    <button onclick="consultar()">Enviar</button>
-    <pre id="respuesta"></pre>
-
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>Chat UTEM</h1>
+            <div class="chat-status">● En línea</div>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message">
+                <h3>¡Bienvenido al Chat UTEM!</h3>
+                <p>Estoy aquí para ayudarte con tus consultas. Escribe tu pregunta y presiona enviar para comenzar.</p>
+            </div>
+        </div>
+        
+        <div class="chat-input">
+            <div class="input-container">
+                <input type="text" id="pregunta" placeholder="Escribe tu pregunta aquí..." maxlength="500">
+            </div>
+            <button class="send-button" onclick="consultar()" id="sendButton">
+                <svg class="send-icon" viewBox="0 0 24 24">
+                    <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
     <script src="/static/main.js"></script>
 </body>
 </html>
